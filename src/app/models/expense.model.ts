@@ -18,6 +18,8 @@ export type PaymentMethod =
   | 'BANK_TRANSFER'
   | 'DIGITAL_WALLET';
 
+export type ExpenseStatus = 'PAID' | 'PENDING';
+
 export interface Category {
   id: number;
   name: string;
@@ -36,12 +38,35 @@ export interface Expense {
   date: string;
   expenseType: ExpenseType;
   paymentMethod: PaymentMethod;
+  status: ExpenseStatus;
   category: Category;
   installmentNumber?: number;
   totalInstallments?: number;
   isRecurring: boolean;
   recurrenceDay?: number;
-  createdAt: string;
+  receiptUrl?: string;       // Enlace a Google Drive o comprobante
+  referenceCode?: string;    // N° contrato EPEC, cuenta Ecogas, etc.
+  period?: string;           // Ej: 2026/10, 5.1-2
+  createdAt?: string;
+}
+
+export interface ExpenseRequest {
+  title: string;
+  description?: string;
+  amount: number;
+  currency: Currency;
+  date?: string;
+  expenseType: ExpenseType;
+  paymentMethod: PaymentMethod;
+  status?: ExpenseStatus;
+  categoryId: number;
+  installmentNumber?: number;
+  totalInstallments?: number;
+  isRecurring?: boolean;
+  recurrenceDay?: number;
+  receiptUrl?: string;
+  referenceCode?: string;
+  period?: string;
 }
 
 export interface ExpenseSummary {

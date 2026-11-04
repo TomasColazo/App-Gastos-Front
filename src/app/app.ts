@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from './services/api.service';
-import { Expense, ExpenseType, Currency, PaymentMethod } from './models/expense.model';
+import { AuthService } from './services/auth.service';
+import { Expense, Category, ExpenseType, Currency, PaymentMethod, ExpenseStatus, ExpenseRequest } from './models/expense.model';
 
 @Component({
   selector: 'app-root',
@@ -13,149 +14,208 @@ import { Expense, ExpenseType, Currency, PaymentMethod } from './models/expense.
 })
 export class App implements OnInit {
   private api = inject(ApiService);
+  protected auth = inject(AuthService);
 
   backendStatus = signal<'checking' | 'connected' | 'disconnected'>('checking');
+  isLoading = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
+
+  // Filtros
   selectedFilter = signal<string>('ALL');
+  statusFilter = signal<'ALL' | 'PAID' | 'PENDING'>('ALL');
 
-  // Datos mock iniciales listos para visualizar la UI mientras se conecta al back
-  expenses = signal<Expense[]>([
-    {
-      id: 1,
-      title: 'Supermercado Coto',
-      description: 'Compra semanal de alimentos y limpieza',
-      amount: 45200.50,
-      currency: 'ARS',
-      date: '2026-11-03',
-      expenseType: 'GROCERY',
-      paymentMethod: 'DEBIT_CARD',
-      category: { id: 1, name: 'Supermercado y Alimentos', color: '#10B981', isSystemDefault: true },
-      isRecurring: false,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 2,
-      title: 'Factura de Electricidad (Edenor)',
-      description: 'Servicio bimestral luz',
-      amount: 28400.00,
-      currency: 'ARS',
-      date: '2026-11-01',
-      expenseType: 'SERVICE',
-      paymentMethod: 'BANK_TRANSFER',
-      category: { id: 2, name: 'Servicios del Hogar', color: '#F59E0B', isSystemDefault: true },
-      isRecurring: true,
-      recurrenceDay: 10,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 3,
-      title: 'Netflix & Spotify',
-      description: 'Suscripciones mensuales streaming',
-      amount: 14.99,
-      currency: 'USD',
-      date: '2026-11-02',
-      expenseType: 'SUBSCRIPTION',
-      paymentMethod: 'CREDIT_CARD',
-      category: { id: 3, name: 'Suscripciones Digitales', color: '#8B5CF6', isSystemDefault: true },
-      isRecurring: true,
-      recurrenceDay: 5,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 4,
-      title: 'Zapatillas Running (Visa)',
-      description: 'Compra en 6 cuotas fijas',
-      amount: 32500.00,
-      currency: 'ARS',
-      date: '2026-10-28',
-      expenseType: 'INSTALLMENT',
-      paymentMethod: 'CREDIT_CARD',
-      category: { id: 4, name: 'Cuotas de Tarjeta', color: '#EF4444', isSystemDefault: true },
-      installmentNumber: 2,
-      totalInstallments: 6,
-      isRecurring: false,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 5,
-      title: 'Cena con amigos',
-      description: 'Pizzeria y bebidas',
-      amount: 18500.00,
-      currency: 'ARS',
-      date: '2026-11-02',
-      expenseType: 'LEISURE',
-      paymentMethod: 'DIGITAL_WALLET',
-      category: { id: 5, name: 'Salidas y Restaurantes', color: '#EC4899', isSystemDefault: true },
-      isRecurring: false,
-      createdAt: new Date().toISOString()
-    }
-  ]);
+  // Datos
+  categories = signal<Category[]>([]);
+  expenses = signal<Expense[]>([]);
 
-  // Formulario rápido
+  // Formulario reactivo
   newTitle = '';
+  newDescription = '';
   newAmount: number | null = null;
   newCurrency: Currency = 'ARS';
-  newType: ExpenseType = 'DAILY';
+  newDate: string = new Date().toISOString().split('T')[0];
+  newType: ExpenseType = 'SERVICE';
   newPaymentMethod: PaymentMethod = 'DEBIT_CARD';
+  newStatus: ExpenseStatus = 'PAID';
+  newCategoryId: number | null = null;
+  newReferenceCode = '';
+  newPeriod = '';
+  newReceiptUrl = '';
+  newInstallmentNumber: number | null = null;
+  newTotalInstallments: number | null = null;
+  newIsRecurring = false;
+  newRecurrenceDay: number | null = null;
+
+  // Toggle para campos avanzados
+  showAdvancedFields = false;
 
   ngOnInit(): void {
-    this.checkBackend();
+    this.initApp();
   }
 
-  checkBackend(): void {
+  initApp(): void {
     this.backendStatus.set('checking');
-    this.api.checkHealth().subscribe({
-      next: () => this.backendStatus.set('connected'),
-      error: () => this.backendStatus.set('disconnected')
+    this.auth.ensureAuthenticated().subscribe({
+      next: (authenticated) => {
+        if (authenticated) {
+          this.backendStatus.set('connected');
+          this.loadCategories();
+          this.loadExpenses();
+        } else {
+          this.backendStatus.set('disconnected');
+          this.errorMessage.set('No se pudo autenticar con el backend.');
+        }
+      },
+      error: () => {
+        this.backendStatus.set('disconnected');
+        this.errorMessage.set('El backend no responde en /api/v1.');
+      }
+    });
+  }
+
+  loadCategories(): void {
+    this.api.getCategories().subscribe({
+      next: (cats) => {
+        this.categories.set(cats);
+        if (cats.length > 0 && !this.newCategoryId) {
+          this.newCategoryId = cats[0].id;
+        }
+      },
+      error: (err) => console.error('Error al cargar categorías:', err)
+    });
+  }
+
+  loadExpenses(): void {
+    this.isLoading.set(true);
+    this.api.getExpenses().subscribe({
+      next: (data) => {
+        this.expenses.set(data);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error al cargar gastos:', err);
+        this.isLoading.set(false);
+      }
     });
   }
 
   get filteredExpenses(): Expense[] {
-    const filter = this.selectedFilter();
-    if (filter === 'ALL') return this.expenses();
-    return this.expenses().filter(e => e.expenseType === filter);
+    return this.expenses().filter((e) => {
+      // Filtro por tipo
+      const matchesType = this.selectedFilter() === 'ALL' || e.expenseType === this.selectedFilter();
+      // Filtro por estado
+      const matchesStatus = this.statusFilter() === 'ALL' || e.status === this.statusFilter();
+      return matchesType && matchesStatus;
+    });
   }
 
   get totalArs(): number {
     return this.expenses()
-      .filter(e => e.currency === 'ARS')
-      .reduce((acc, curr) => acc + curr.amount, 0);
+      .filter((e) => e.currency === 'ARS')
+      .reduce((acc, curr) => acc + Number(curr.amount), 0);
   }
 
   get totalUsd(): number {
     return this.expenses()
-      .filter(e => e.currency === 'USD')
-      .reduce((acc, curr) => acc + curr.amount, 0);
+      .filter((e) => e.currency === 'USD')
+      .reduce((acc, curr) => acc + Number(curr.amount), 0);
   }
 
-  addExpense(): void {
-    if (!this.newTitle.trim() || !this.newAmount || this.newAmount <= 0) return;
+  get totalPendingCount(): number {
+    return this.expenses().filter((e) => e.status === 'PENDING').length;
+  }
 
-    const newExp: Expense = {
-      id: Date.now(),
+  submitExpense(): void {
+    if (!this.newTitle.trim() || !this.newAmount || this.newAmount <= 0 || !this.newCategoryId) {
+      alert('Por favor completa el título, un monto válido y selecciona una categoría.');
+      return;
+    }
+
+    const payload: ExpenseRequest = {
       title: this.newTitle.trim(),
+      description: this.newDescription.trim() || undefined,
       amount: this.newAmount,
       currency: this.newCurrency,
-      date: new Date().toISOString().split('T')[0],
+      date: this.newDate,
       expenseType: this.newType,
       paymentMethod: this.newPaymentMethod,
-      category: {
-        id: 99,
-        name: this.formatType(this.newType),
-        color: '#3B82F6',
-        isSystemDefault: false
-      },
-      isRecurring: this.newType === 'SUBSCRIPTION' || this.newType === 'SERVICE',
-      createdAt: new Date().toISOString()
+      status: this.newStatus,
+      categoryId: this.newCategoryId,
+      referenceCode: this.newReferenceCode.trim() || undefined,
+      period: this.newPeriod.trim() || undefined,
+      receiptUrl: this.newReceiptUrl.trim() || undefined,
+      isRecurring: this.newIsRecurring || this.newType === 'SERVICE' || this.newType === 'SUBSCRIPTION',
+      recurrenceDay: this.newRecurrenceDay || undefined,
+      installmentNumber: this.newInstallmentNumber || undefined,
+      totalInstallments: this.newTotalInstallments || undefined
     };
 
-    this.expenses.update(list => [newExp, ...list]);
-
-    this.newTitle = '';
-    this.newAmount = null;
+    this.api.createExpense(payload).subscribe({
+      next: (created) => {
+        this.expenses.update((list) => [created, ...list]);
+        this.resetForm();
+      },
+      error: (err) => {
+        console.error('Error al guardar gasto:', err);
+        alert('Error al guardar en PostgreSQL. Revisa los datos ingresados.');
+      }
+    });
   }
 
-  deleteExpense(id: number): void {
-    this.expenses.update(list => list.filter(e => e.id !== id));
+  deleteExpense(id: number, event: Event): void {
+    event.stopPropagation();
+    if (!confirm('¿Seguro que deseas eliminar este registro?')) return;
+
+    this.api.deleteExpense(id).subscribe({
+      next: () => {
+        this.expenses.update((list) => list.filter((e) => e.id !== id));
+      },
+      error: (err) => console.error('Error al eliminar gasto:', err)
+    });
+  }
+
+  toggleExpenseStatus(expense: Expense): void {
+    const updatedStatus: ExpenseStatus = expense.status === 'PAID' ? 'PENDING' : 'PAID';
+    const payload: ExpenseRequest = {
+      title: expense.title,
+      description: expense.description,
+      amount: expense.amount,
+      currency: expense.currency,
+      date: expense.date,
+      expenseType: expense.expenseType,
+      paymentMethod: expense.paymentMethod,
+      status: updatedStatus,
+      categoryId: expense.category.id,
+      referenceCode: expense.referenceCode,
+      period: expense.period,
+      receiptUrl: expense.receiptUrl,
+      isRecurring: expense.isRecurring,
+      recurrenceDay: expense.recurrenceDay,
+      installmentNumber: expense.installmentNumber,
+      totalInstallments: expense.totalInstallments
+    };
+
+    this.api.updateExpense(expense.id, payload).subscribe({
+      next: (updated) => {
+        this.expenses.update((list) =>
+          list.map((e) => (e.id === expense.id ? updated : e))
+        );
+      },
+      error: (err) => console.error('Error al actualizar estado:', err)
+    });
+  }
+
+  resetForm(): void {
+    this.newTitle = '';
+    this.newDescription = '';
+    this.newAmount = null;
+    this.newReferenceCode = '';
+    this.newPeriod = '';
+    this.newReceiptUrl = '';
+    this.newInstallmentNumber = null;
+    this.newTotalInstallments = null;
+    this.newIsRecurring = false;
+    this.newRecurrenceDay = null;
   }
 
   formatType(type: ExpenseType): string {
@@ -171,5 +231,16 @@ export class App implements OnInit {
       OTHER: 'Otro'
     };
     return map[type] || type;
+  }
+
+  formatPaymentMethod(pm: PaymentMethod): string {
+    const map: Record<PaymentMethod, string> = {
+      CASH: 'Efectivo',
+      DEBIT_CARD: 'Tarjeta Débito',
+      CREDIT_CARD: 'Tarjeta Crédito',
+      BANK_TRANSFER: 'Transferencia / DA',
+      DIGITAL_WALLET: 'Billetera Virtual'
+    };
+    return map[pm] || pm;
   }
 }
