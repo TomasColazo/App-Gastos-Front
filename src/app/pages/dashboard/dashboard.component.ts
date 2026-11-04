@@ -39,8 +39,7 @@ export class DashboardComponent implements OnInit {
   expenses = signal<Expense[]>([]);
   summary = signal<ExpenseSummary | null>(null);
 
-  // Filtros rápidos dentro del mes
-  typeFilter = signal<string>('ALL');
+  // Filtros rápidos dentro del mes (unificados por Categoría y Estado)
   statusFilter = signal<'ALL' | 'PAID' | 'PENDING'>('ALL');
   categoryFilter = signal<number | null>(null);
 
@@ -51,7 +50,6 @@ export class DashboardComponent implements OnInit {
   formAmount: number | null = null;
   formCurrency: Currency = 'ARS';
   formDate: string = new Date().toISOString().split('T')[0];
-  formType: ExpenseType = 'SERVICE';
   formPaymentMethod: PaymentMethod = 'DEBIT_CARD';
   formStatus: ExpenseStatus = 'PAID';
   formCategoryId: number | null = null;
@@ -151,10 +149,9 @@ export class DashboardComponent implements OnInit {
 
   get filteredExpenses(): Expense[] {
     return this.expenses().filter((e) => {
-      const matchType = this.typeFilter() === 'ALL' || e.expenseType === this.typeFilter();
       const matchStatus = this.statusFilter() === 'ALL' || e.status === this.statusFilter();
       const matchCategory = !this.categoryFilter() || e.category.id === this.categoryFilter();
-      return matchType && matchStatus && matchCategory;
+      return matchStatus && matchCategory;
     });
   }
 
@@ -187,12 +184,17 @@ export class DashboardComponent implements OnInit {
     return Number((((curr - prev) / prev) * 100).toFixed(1));
   }
 
-  toggleCategoryFilter(catId: number): void {
-    if (this.categoryFilter() === catId) {
+  toggleCategoryFilter(catId: number | null): void {
+    if (catId === null || this.categoryFilter() === catId) {
       this.categoryFilter.set(null);
     } else {
       this.categoryFilter.set(catId);
     }
+  }
+
+  private inferTypeFromCategory(categoryId: number): ExpenseType {
+    const cat = this.categories().find((c) => c.id === Number(categoryId));
+    return cat?.suggestedType || 'DAILY';
   }
 
   startEdit(expense: Expense): void {
@@ -202,7 +204,6 @@ export class DashboardComponent implements OnInit {
     this.formAmount = expense.amount;
     this.formCurrency = expense.currency;
     this.formDate = expense.date;
-    this.formType = expense.expenseType;
     this.formPaymentMethod = expense.paymentMethod;
     this.formStatus = expense.status;
     this.formCategoryId = expense.category.id;
@@ -230,20 +231,23 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    const catId = Number(this.formCategoryId);
+    const inferredType = this.inferTypeFromCategory(catId);
+
     const payload: ExpenseRequest = {
       title: this.formTitle.trim(),
       description: this.formDescription.trim() || undefined,
       amount: this.formAmount,
       currency: this.formCurrency,
       date: this.formDate,
-      expenseType: this.formType,
+      expenseType: inferredType,
       paymentMethod: this.formPaymentMethod,
       status: this.formStatus,
-      categoryId: Number(this.formCategoryId),
+      categoryId: catId,
       referenceCode: this.formReferenceCode.trim() || undefined,
       period: this.formPeriod.trim() || undefined,
       receiptUrl: this.formReceiptUrl.trim() || undefined,
-      isRecurring: this.formIsRecurring || this.formType === 'SERVICE' || this.formType === 'SUBSCRIPTION',
+      isRecurring: this.formIsRecurring || inferredType === 'SERVICE' || inferredType === 'SUBSCRIPTION',
       recurrenceDay: this.formRecurrenceDay || undefined,
       installmentNumber: this.formInstallmentNumber || undefined,
       totalInstallments: this.formTotalInstallments || undefined
@@ -317,6 +321,23 @@ export class DashboardComponent implements OnInit {
     this.formIsRecurring = false;
     this.formRecurrenceDay = null;
     this.syncDefaultDateToSelectedMonth();
+  }
+
+  getCategoryIcon(icon?: string): string {
+    const icons: Record<string, string> = {
+      'zap': '⚡',
+      'landmark': '🏛️',
+      'phone': '📱',
+      'shopping-cart': '🛒',
+      'tv': '📺',
+      'credit-card': '💳',
+      'utensils': '🍽️',
+      'car': '🚗',
+      'heart-pulse': '💊',
+      'coffee': '☕',
+      'tag': '🏷️'
+    };
+    return icons[icon || ''] || '🏷️';
   }
 
   formatPaymentMethod(pm: PaymentMethod): string {

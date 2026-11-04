@@ -217,13 +217,16 @@ export class ExpensesGridComponent implements OnInit {
     const exp = this.editingExpense();
     if (!exp) return;
 
+    const selectedCat = this.categories().find((c) => c.id === Number(this.editCategoryId));
+    const inferredType: ExpenseType = selectedCat?.suggestedType || exp.expenseType || 'DAILY';
+
     const payload: ExpenseRequest = {
       title: this.editTitle.trim(),
       description: this.editDescription.trim() || undefined,
       amount: this.editAmount,
       currency: this.editCurrency,
       date: this.editDate,
-      expenseType: this.editType,
+      expenseType: inferredType,
       paymentMethod: this.editPaymentMethod,
       status: this.editStatus,
       categoryId: Number(this.editCategoryId),
