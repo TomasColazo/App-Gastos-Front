@@ -1,0 +1,360 @@
+<div class="space-y-6">
+  <!-- Cabecera de Consultas y Exportación -->
+  <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-xl font-extrabold text-slate-900">Grilla de Consultas y Movimientos</h2>
+      <p class="text-xs text-slate-500">Filtra, busca por N° de contrato o período y exporta tu historial</p>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button (click)="clearFilters()"
+              class="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium cursor-pointer transition-colors">
+        Limpiar Filtros
+      </button>
+      <button (click)="exportToCsv()"
+              class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5">
+        <span>⬇</span> Exportar CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel de Filtros Avanzados -->
+  <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <!-- Búsqueda por texto -->
+      <div class="sm:col-span-2">
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Buscar por concepto, contrato, cuenta o período</label>
+        <input type="text" [(ngModel)]="filterSearch" (keyup.enter)="applyFilters()"
+               placeholder="Ej: EPEC, 0285055301, 21289350, 5.1-2, Expensas..."
+               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+      </div>
+
+      <!-- Año -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Año</label>
+        <select [(ngModel)]="filterYear" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todos los años</option>
+          <option [ngValue]="2026">2026</option>
+          <option [ngValue]="2025">2025</option>
+          <option [ngValue]="2024">2024</option>
+          <option [ngValue]="2023">2023</option>
+        </select>
+      </div>
+
+      <!-- Mes -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Mes</label>
+        <select [(ngModel)]="filterMonth" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todos los meses</option>
+          @for (mName of monthNames; track $index) {
+            <option [ngValue]="$index + 1">{{ mName }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Categoría -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Categoría</label>
+        <select [(ngModel)]="filterCategoryId" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todas las categorías</option>
+          @for (cat of categories(); track cat.id) {
+            <option [ngValue]="cat.id">{{ cat.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Tipo -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Tipo de Gasto</label>
+        <select [(ngModel)]="filterType" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todos los tipos</option>
+          <option value="SERVICE">Servicios e Impuestos</option>
+          <option value="GROCERY">Supermercado</option>
+          <option value="DAILY">Gasto Diario</option>
+          <option value="SUBSCRIPTION">Suscripciones</option>
+          <option value="INSTALLMENT">Cuotas de Tarjeta</option>
+          <option value="LEISURE">Salidas y Ocio</option>
+          <option value="TRANSPORT">Transporte</option>
+        </select>
+      </div>
+
+      <!-- Estado -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Estado</label>
+        <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todos (Pagados y Pendientes)</option>
+          <option value="PAID">✓ Solo Pagados</option>
+          <option value="PENDING">⏱ Solo Pendientes</option>
+        </select>
+      </div>
+
+      <!-- Medio de Pago -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Medio de Pago</label>
+        <select [(ngModel)]="filterPaymentMethod" (ngModelChange)="applyFilters()"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white">
+          <option [ngValue]="null">Todos los medios</option>
+          <option value="DEBIT_CARD">Débito</option>
+          <option value="BANK_TRANSFER">Transferencia / DA</option>
+          <option value="CREDIT_CARD">Tarjeta Crédito</option>
+          <option value="DIGITAL_WALLET">Billetera Virtual</option>
+          <option value="CASH">Efectivo</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Rango de fechas opcional + Botón Buscar -->
+    <div class="pt-2 border-t border-slate-100 flex flex-wrap items-end justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Fecha Desde</label>
+          <input type="date" [(ngModel)]="filterStartDate" (change)="applyFilters()"
+                 class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Fecha Hasta</label>
+          <input type="date" [(ngModel)]="filterEndDate" (change)="applyFilters()"
+                 class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Moneda</label>
+          <select [(ngModel)]="filterCurrency" (ngModelChange)="applyFilters()"
+                  class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50">
+            <option [ngValue]="null">Todas</option>
+            <option value="ARS">ARS ($)</option>
+            <option value="USD">USD (u$s)</option>
+          </select>
+        </div>
+      </div>
+
+      <button (click)="applyFilters()"
+              class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+        Aplicar Filtros
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Totales de la Consulta Actual -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+      <span class="text-[11px] font-semibold uppercase text-slate-400">Registros Filtrados</span>
+      <div class="text-xl font-extrabold text-slate-900 mt-0.5">{{ expenses().length }}</div>
+    </div>
+    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+      <span class="text-[11px] font-semibold uppercase text-slate-400">Total Selección (ARS)</span>
+      <div class="text-xl font-extrabold text-slate-900 mt-0.5">${{ filteredTotalArs | number:'1.2-2' }}</div>
+    </div>
+    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+      <span class="text-[11px] font-semibold uppercase text-emerald-600">Pagado Selección (ARS)</span>
+      <div class="text-xl font-extrabold text-emerald-700 mt-0.5">${{ filteredPaidArs | number:'1.2-2' }}</div>
+    </div>
+    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+      <span class="text-[11px] font-semibold uppercase text-amber-600">Pendiente Selección (ARS)</span>
+      <div class="text-xl font-extrabold text-amber-600 mt-0.5">${{ filteredPendingArs | number:'1.2-2' }}</div>
+    </div>
+  </div>
+
+  <!-- Tabla / Grilla de Resultados -->
+  <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+            <th (click)="toggleSort('date')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
+              Fecha {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+            </th>
+            <th (click)="toggleSort('title')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
+              Concepto / Servicio {{ sortColumn() === 'title' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+            </th>
+            <th (click)="toggleSort('category')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
+              Categoría {{ sortColumn() === 'category' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+            </th>
+            <th class="py-3.5 px-4">Período / Cuenta</th>
+            <th class="py-3.5 px-4">Medio Pago</th>
+            <th class="py-3.5 px-4">Estado</th>
+            <th class="py-3.5 px-4 text-center">Drive</th>
+            <th (click)="toggleSort('amount')" class="py-3.5 px-4 text-right cursor-pointer hover:text-slate-900 select-none">
+              Monto {{ sortColumn() === 'amount' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+            </th>
+            <th class="py-3.5 px-4 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-xs sm:text-sm">
+          @if (isLoading()) {
+            <tr>
+              <td colspan="9" class="py-12 text-center text-slate-400">
+                Consultando base de datos...
+              </td>
+            </tr>
+          } @else {
+            @for (exp of sortedExpenses; track exp.id) {
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="py-3 px-4 font-mono text-xs text-slate-600 whitespace-nowrap">
+                  {{ exp.date }}
+                </td>
+                <td class="py-3 px-4">
+                  <div class="font-semibold text-slate-900">{{ exp.title }}</div>
+                  @if (exp.description) {
+                    <div class="text-xs text-slate-400 truncate max-w-xs">{{ exp.description }}</div>
+                  }
+                </td>
+                <td class="py-3 px-4 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                    <span class="w-2.5 h-2.5 rounded-full" [style.backgroundColor]="exp.category.color"></span>
+                    {{ exp.category.name }}
+                  </span>
+                </td>
+                <td class="py-3 px-4 whitespace-nowrap">
+                  <div class="flex flex-col gap-0.5 text-xs">
+                    @if (exp.period) {
+                      <span class="font-mono font-semibold text-slate-700">{{ exp.period }}</span>
+                    }
+                    @if (exp.referenceCode) {
+                      <span class="text-[11px] text-slate-400">N° {{ exp.referenceCode }}</span>
+                    }
+                    @if (!exp.period && !exp.referenceCode) {
+                      <span class="text-slate-300">—</span>
+                    }
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-xs text-slate-600 whitespace-nowrap">
+                  {{ formatPaymentMethod(exp.paymentMethod) }}
+                </td>
+                <td class="py-3 px-4 whitespace-nowrap">
+                  <button (click)="toggleStatus(exp)"
+                          class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold cursor-pointer"
+                          [ngClass]="exp.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-300'">
+                    {{ exp.status === 'PAID' ? '✓ Pagado' : '⏱ Pendiente' }}
+                  </button>
+                </td>
+                <td class="py-3 px-4 text-center whitespace-nowrap">
+                  @if (exp.receiptUrl) {
+                    <a [href]="exp.receiptUrl" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"
+                       title="Abrir comprobante en Google Drive">
+                      📁
+                    </a>
+                  } @else {
+                    <span class="text-slate-300">—</span>
+                  }
+                </td>
+                <td class="py-3 px-4 text-right font-bold whitespace-nowrap"
+                    [ngClass]="exp.currency === 'USD' ? 'text-blue-600' : 'text-slate-900'">
+                  {{ exp.currency === 'USD' ? 'u$s' : '$' }} {{ exp.amount | number:'1.2-2' }}
+                </td>
+                <td class="py-3 px-4 text-right whitespace-nowrap">
+                  <button (click)="openEditModal(exp)"
+                          class="text-slate-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 cursor-pointer"
+                          title="Editar">
+                    ✎
+                  </button>
+                  <button (click)="deleteExpense(exp.id)"
+                          class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer ml-1"
+                          title="Eliminar">
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="py-12 text-center text-slate-400">
+                  No se encontraron registros con los filtros seleccionados.
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal de Edición Rápida desde la Grilla -->
+  @if (editingExpense()) {
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="text-base font-bold text-slate-900">Editar Movimiento #{{ editingExpense()!.id }}</h3>
+          <button (click)="closeEditModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+        </div>
+
+        <form (ngSubmit)="saveEdit()" class="space-y-3.5 text-xs sm:text-sm">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Concepto</label>
+            <input type="text" [(ngModel)]="editTitle" name="editTitle" required
+                   class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Monto</label>
+              <input type="number" step="0.01" [(ngModel)]="editAmount" name="editAmount" required
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Moneda</label>
+              <select [(ngModel)]="editCurrency" name="editCurrency"
+                      class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+                <option value="ARS">ARS</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha</label>
+              <input type="date" [(ngModel)]="editDate" name="editDate"
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Estado</label>
+              <select [(ngModel)]="editStatus" name="editStatus"
+                      class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+                <option value="PAID">✓ Pagado</option>
+                <option value="PENDING">⏱ Pendiente</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Período</label>
+              <input type="text" [(ngModel)]="editPeriod" name="editPeriod"
+                     placeholder="Ej: 2026/10, 5.1-2"
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">N° Cuenta / Contrato</label>
+              <input type="text" [(ngModel)]="editReferenceCode" name="editRef"
+                     placeholder="Ej: 0285055301"
+                     class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Link Comprobante Google Drive 📁</label>
+            <input type="url" [(ngModel)]="editReceiptUrl" name="editReceipt"
+                   placeholder="https://drive.google.com/..."
+                   class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button type="button" (click)="closeEditModal()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit"
+                    class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer">
+              Guardar Cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

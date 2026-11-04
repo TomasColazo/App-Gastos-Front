@@ -69,10 +69,40 @@ export interface ExpenseRequest {
   period?: string;
 }
 
+export interface CategoryBreakdownItem {
+  categoryId: number;
+  categoryName: string;
+  color: string;
+  icon: string;
+  totalArs: number;
+  totalUsd: number;
+  count: number;
+  percentageArs: number;
+}
+
 export interface ExpenseSummary {
   totalsByCurrency: Record<string, number>;
+  paidByCurrency: Record<string, number>;
+  pendingByCurrency: Record<string, number>;
   totalsByType: Record<string, number>;
+  categoryBreakdown: CategoryBreakdownItem[];
   totalExpensesCount: number;
+  paidCount: number;
+  pendingCount: number;
+  previousMonthTotalArs: number;
   month: number;
   year: number;
+}
+
+export interface ExpenseFilterParams {
+  year?: number | null;
+  month?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  categoryId?: number | null;
+  type?: ExpenseType | null;
+  status?: ExpenseStatus | null;
+  currency?: Currency | null;
+  paymentMethod?: PaymentMethod | null;
+  search?: string | null;
 }
