@@ -159,118 +159,137 @@
     </div>
   </div>
 
-  <!-- Tabla / Grilla de Resultados -->
-  <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
-            <th (click)="toggleSort('date')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
-              Fecha {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
-            </th>
-            <th (click)="toggleSort('title')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
-              Concepto / Servicio {{ sortColumn() === 'title' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
-            </th>
-            <th (click)="toggleSort('category')" class="py-3.5 px-4 cursor-pointer hover:text-slate-900 select-none">
-              Categoría {{ sortColumn() === 'category' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
-            </th>
-            <th class="py-3.5 px-4">Período / Cuenta</th>
-            <th class="py-3.5 px-4">Medio Pago</th>
-            <th class="py-3.5 px-4">Estado</th>
-            <th class="py-3.5 px-4 text-center">Drive</th>
-            <th (click)="toggleSort('amount')" class="py-3.5 px-4 text-right cursor-pointer hover:text-slate-900 select-none">
-              Monto {{ sortColumn() === 'amount' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
-            </th>
-            <th class="py-3.5 px-4 text-right">Acciones</th>
+  <!-- Tabla / Grilla Compacta sin Scroll Horizontal -->
+  <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+    <table class="w-full text-left border-collapse table-fixed">
+      <thead>
+        <tr class="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+          <th (click)="toggleSort('category')" class="w-14 py-3 px-2 text-center cursor-pointer hover:text-slate-900 select-none" title="Ordenar por Categoría">
+            Cat. {{ sortColumn() === 'category' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+          </th>
+          <th (click)="toggleSort('date')" class="w-24 py-3 px-2.5 cursor-pointer hover:text-slate-900 select-none">
+            Fecha {{ sortColumn() === 'date' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+          </th>
+          <th (click)="toggleSort('title')" class="py-3 px-3 cursor-pointer hover:text-slate-900 select-none">
+            Concepto / Servicio {{ sortColumn() === 'title' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+          </th>
+          <th class="w-36 py-3 px-2.5 hidden md:table-cell">Período / Ref.</th>
+          <th class="w-24 py-3 px-2 hidden sm:table-cell">Pago</th>
+          <th class="w-24 py-3 px-2 text-center">Estado</th>
+          <th (click)="toggleSort('amount')" class="w-32 py-3 px-3 text-right cursor-pointer hover:text-slate-900 select-none">
+            Monto {{ sortColumn() === 'amount' ? (sortDirection() === 'asc' ? '↑' : '↓') : '' }}
+          </th>
+          <th class="w-24 py-3 px-2.5 text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 text-xs sm:text-sm">
+        @if (isLoading()) {
+          <tr>
+            <td colspan="8" class="py-12 text-center text-slate-400">
+              Consultando base de datos...
+            </td>
           </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 text-xs sm:text-sm">
-          @if (isLoading()) {
-            <tr>
-              <td colspan="9" class="py-12 text-center text-slate-400">
-                Consultando base de datos...
-              </td>
-            </tr>
-          } @else {
-            @for (exp of sortedExpenses; track exp.id) {
-              <tr class="hover:bg-slate-50/80 transition-colors">
-                <td class="py-3 px-4 font-mono text-xs text-slate-600 whitespace-nowrap">
-                  {{ exp.date }}
-                </td>
-                <td class="py-3 px-4">
-                  <div class="font-semibold text-slate-900">{{ exp.title }}</div>
-                  @if (exp.description) {
-                    <div class="text-xs text-slate-400 truncate max-w-xs">{{ exp.description }}</div>
-                  }
-                </td>
-                <td class="py-3 px-4 whitespace-nowrap">
-                  <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                    <span class="w-2.5 h-2.5 rounded-full" [style.backgroundColor]="exp.category.color"></span>
-                    {{ exp.category.name }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 whitespace-nowrap">
-                  <div class="flex flex-col gap-0.5 text-xs">
-                    @if (exp.period) {
-                      <span class="font-mono font-semibold text-slate-700">{{ exp.period }}</span>
-                    }
-                    @if (exp.referenceCode) {
-                      <span class="text-[11px] text-slate-400">N° {{ exp.referenceCode }}</span>
-                    }
-                    @if (!exp.period && !exp.referenceCode) {
-                      <span class="text-slate-300">—</span>
-                    }
+        } @else {
+          @for (exp of sortedExpenses; track exp.id) {
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <!-- 1. Icono de Categoría con Tooltip al pasar el cursor -->
+              <td class="py-2.5 px-2 text-center">
+                <div class="relative group inline-flex items-center justify-center">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-2xs cursor-help transition-transform group-hover:scale-110"
+                       [style.backgroundColor]="(exp.category.color || '#3B82F6') + '20'"
+                       [style.color]="exp.category.color || '#3B82F6'"
+                       [style.border]="'1px solid ' + (exp.category.color || '#3B82F6') + '40'">
+                    {{ getCategoryIcon(exp.category.icon) }}
                   </div>
-                </td>
-                <td class="py-3 px-4 text-xs text-slate-600 whitespace-nowrap">
-                  {{ formatPaymentMethod(exp.paymentMethod) }}
-                </td>
-                <td class="py-3 px-4 whitespace-nowrap">
-                  <button (click)="toggleStatus(exp)"
-                          class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold cursor-pointer"
-                          [ngClass]="exp.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-300'">
-                    {{ exp.status === 'PAID' ? '✓ Pagado' : '⏱ Pendiente' }}
-                  </button>
-                </td>
-                <td class="py-3 px-4 text-center whitespace-nowrap">
-                  @if (exp.receiptUrl) {
-                    <a [href]="exp.receiptUrl" target="_blank" rel="noopener noreferrer"
-                       class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"
-                       title="Abrir comprobante en Google Drive">
-                      📁
-                    </a>
-                  } @else {
+                  <!-- Tooltip flotante -->
+                  <div class="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 z-40 hidden group-hover:block bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+                    {{ exp.category.name }}
+                  </div>
+                </div>
+              </td>
+
+              <!-- 2. Fecha compacta -->
+              <td class="py-2.5 px-2.5 font-mono text-xs text-slate-600 whitespace-nowrap" [title]="exp.date">
+                {{ formatShortDate(exp.date) }}
+              </td>
+
+              <!-- 3. Concepto + Descripción truncada -->
+              <td class="py-2.5 px-3 truncate">
+                <div class="font-semibold text-slate-900 truncate" [title]="exp.title">{{ exp.title }}</div>
+                @if (exp.description) {
+                  <div class="text-[11px] text-slate-400 truncate" [title]="exp.description">{{ exp.description }}</div>
+                }
+              </td>
+
+              <!-- 4. Período y N° de cuenta/contrato -->
+              <td class="py-2.5 px-2.5 hidden md:table-cell truncate">
+                <div class="flex flex-col leading-tight">
+                  @if (exp.period) {
+                    <span class="font-mono font-semibold text-xs text-slate-700 truncate">{{ exp.period }}</span>
+                  }
+                  @if (exp.referenceCode) {
+                    <span class="text-[10px] text-slate-400 truncate" [title]="'N° ' + exp.referenceCode">N° {{ exp.referenceCode }}</span>
+                  }
+                  @if (!exp.period && !exp.referenceCode) {
                     <span class="text-slate-300">—</span>
                   }
-                </td>
-                <td class="py-3 px-4 text-right font-bold whitespace-nowrap"
-                    [ngClass]="exp.currency === 'USD' ? 'text-blue-600' : 'text-slate-900'">
-                  {{ exp.currency === 'USD' ? 'u$s' : '$' }} {{ exp.amount | number:'1.2-2' }}
-                </td>
-                <td class="py-3 px-4 text-right whitespace-nowrap">
+                </div>
+              </td>
+
+              <!-- 5. Medio de Pago -->
+              <td class="py-2.5 px-2 text-xs text-slate-600 hidden sm:table-cell truncate">
+                {{ formatPaymentMethodShort(exp.paymentMethod) }}
+              </td>
+
+              <!-- 6. Estado -->
+              <td class="py-2.5 px-2 text-center whitespace-nowrap">
+                <button (click)="toggleStatus(exp)"
+                        class="text-[11px] px-2 py-0.5 rounded-full font-semibold cursor-pointer transition-colors"
+                        [ngClass]="exp.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100'"
+                        title="Click para alternar estado">
+                  {{ exp.status === 'PAID' ? '✓ Pagado' : '⏱ Pend.' }}
+                </button>
+              </td>
+
+              <!-- 7. Monto siempre visible -->
+              <td class="py-2.5 px-3 text-right font-extrabold whitespace-nowrap"
+                  [ngClass]="exp.currency === 'USD' ? 'text-blue-600' : 'text-slate-900'">
+                {{ exp.currency === 'USD' ? 'u$s' : '$' }} {{ exp.amount | number:'1.2-2' }}
+              </td>
+
+              <!-- 8. Acciones (Drive + Editar + Eliminar compactos) -->
+              <td class="py-2.5 px-2.5 text-right whitespace-nowrap">
+                <div class="inline-flex items-center justify-end gap-0.5">
+                  @if (exp.receiptUrl) {
+                    <a [href]="exp.receiptUrl" target="_blank" rel="noopener noreferrer"
+                       class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                       title="Ver comprobante en Google Drive">
+                      📁
+                    </a>
+                  }
                   <button (click)="openEditModal(exp)"
-                          class="text-slate-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 cursor-pointer"
+                          class="text-slate-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 cursor-pointer transition-colors"
                           title="Editar">
                     ✎
                   </button>
                   <button (click)="deleteExpense(exp.id)"
-                          class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer ml-1"
+                          class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
                           title="Eliminar">
                     ✕
                   </button>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="9" class="py-12 text-center text-slate-400">
-                  No se encontraron registros con los filtros seleccionados.
-                </td>
-              </tr>
-            }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="py-12 text-center text-slate-400">
+                No se encontraron registros con los filtros seleccionados.
+              </td>
+            </tr>
           }
-        </tbody>
-      </table>
-    </div>
+        }
+      </tbody>
+    </table>
   </div>
 
   <!-- Modal de Edición Rápida desde la Grilla -->

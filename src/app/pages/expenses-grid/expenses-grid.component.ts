@@ -284,13 +284,37 @@ export class ExpensesGridComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  formatPaymentMethod(pm: PaymentMethod): string {
+  getCategoryIcon(icon?: string): string {
+    const icons: Record<string, string> = {
+      'zap': '⚡',
+      'landmark': '🏛️',
+      'phone': '📱',
+      'shopping-cart': '🛒',
+      'tv': '📺',
+      'credit-card': '💳',
+      'utensils': '🍽️',
+      'car': '🚗',
+      'heart-pulse': '💊',
+      'coffee': '☕',
+      'tag': '🏷️'
+    };
+    return icons[icon || ''] || '🏷️';
+  }
+
+  formatShortDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+  }
+
+  formatPaymentMethodShort(pm: PaymentMethod): string {
     const map: Record<PaymentMethod, string> = {
       CASH: 'Efectivo',
       DEBIT_CARD: 'Débito',
       CREDIT_CARD: 'Crédito',
-      BANK_TRANSFER: 'Transferencia / DA',
-      DIGITAL_WALLET: 'Billetera Virtual'
+      BANK_TRANSFER: 'Transf./DA',
+      DIGITAL_WALLET: 'Billetera'
     };
     return map[pm] || pm;
   }
