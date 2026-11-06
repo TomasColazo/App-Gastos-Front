@@ -50,12 +50,36 @@ export class AuthService {
   }
 
   /**
-   * Auto-login inicial para facilitar el uso inmediato con la cuenta de Tomas
+   * Verifica si un JWT está expirado o malformado
+   */
+  isTokenExpired(token: string | null): boolean {
+    if (!token) return true;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+      const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const decodedJson = atob(payloadBase64);
+      const payload = JSON.parse(decodedJson);
+      if (payload.exp) {
+        // Margen de seguridad de 30 segundos
+        return Date.now() >= (payload.exp * 1000 - 30000);
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Auto-login inicial para facilitar el uso inmediato con la cuenta de Tomas.
+   * Si el token no existe o ya expiró, renueva la sesión automáticamente.
    */
   ensureAuthenticated(): Observable<boolean> {
-    if (this.token()) {
+    const currentToken = this.token();
+    if (currentToken && !this.isTokenExpired(currentToken)) {
       return of(true);
     }
+    this.logout();
     return this.login('tomeix13@gmail.com', 'admin123').pipe(
       map(() => true),
       catchError(() => of(false))
