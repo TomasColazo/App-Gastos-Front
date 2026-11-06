@@ -330,40 +330,43 @@
     <!-- Columna Movimientos del Mes (8/12) -->
     <div class="lg:col-span-8 space-y-4">
       <!-- Filtros Rápidos del Mes (Por Categoría + Estado) -->
-      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtrar Movimientos</span>
+          <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs font-medium shrink-0">
+            <button (click)="statusFilter.set('ALL')"
+                    [ngClass]="statusFilter() === 'ALL' ? 'bg-white shadow-xs text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                    class="px-2.5 py-1 rounded-lg cursor-pointer transition-colors">
+              Todos
+            </button>
+            <button (click)="statusFilter.set('PAID')"
+                    [ngClass]="statusFilter() === 'PAID' ? 'bg-white shadow-xs text-emerald-700 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                    class="px-2.5 py-1 rounded-lg cursor-pointer transition-colors">
+              Pagados
+            </button>
+            <button (click)="statusFilter.set('PENDING')"
+                    [ngClass]="statusFilter() === 'PENDING' ? 'bg-white shadow-xs text-amber-700 font-semibold' : 'text-slate-500 hover:text-slate-700'"
+                    class="px-2.5 py-1 rounded-lg cursor-pointer transition-colors">
+              Pendientes
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-3 pt-1 scrollbar-thin">
           <button (click)="toggleCategoryFilter(null)"
-                  [ngClass]="categoryFilter() === null ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
-                  class="px-3 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap">
+                  [ngClass]="categoryFilter() === null ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'"
+                  class="px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0">
             Todas ({{ expenses().length }})
           </button>
           @for (cat of categories(); track cat.id) {
             <button (click)="toggleCategoryFilter(cat.id)"
-                    [ngClass]="categoryFilter() === cat.id ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
-                    class="px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1"
+                    [ngClass]="categoryFilter() === cat.id ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'"
+                    class="px-2.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0"
                     [title]="cat.name">
               <span>{{ getCategoryIcon(cat.icon) }}</span>
-              <span class="max-w-28 truncate">{{ cat.name.split('(')[0].trim() }}</span>
+              <span class="max-w-32 truncate">{{ cat.name.split('(')[0].trim() }}</span>
             </button>
           }
-        </div>
-
-        <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs font-medium">
-          <button (click)="statusFilter.set('ALL')"
-                  [ngClass]="statusFilter() === 'ALL' ? 'bg-white shadow-xs text-slate-900 font-semibold' : 'text-slate-500'"
-                  class="px-2.5 py-1 rounded-lg cursor-pointer">
-            Todos
-          </button>
-          <button (click)="statusFilter.set('PAID')"
-                  [ngClass]="statusFilter() === 'PAID' ? 'bg-white shadow-xs text-emerald-700 font-semibold' : 'text-slate-500'"
-                  class="px-2.5 py-1 rounded-lg cursor-pointer">
-            Pagados
-          </button>
-          <button (click)="statusFilter.set('PENDING')"
-                  [ngClass]="statusFilter() === 'PENDING' ? 'bg-white shadow-xs text-amber-700 font-semibold' : 'text-slate-500'"
-                  class="px-2.5 py-1 rounded-lg cursor-pointer">
-            Pendientes
-          </button>
         </div>
       </div>
 
