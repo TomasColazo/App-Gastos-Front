@@ -1,4 +1,4 @@
-export type Currency = 'ARS' | 'USD' | 'EUR' | 'BRL' | 'CLP' | 'UYU';
+export type Currency = 'ARS' | 'USD';
 
 export type ExpenseType =
   | 'DAILY'
